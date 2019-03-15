@@ -1,0 +1,127 @@
+---
+title: "Prediction of movies popularity"
+author: "Shwetha Krishna"
+date: "February 22, 2019"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+#The purpose of this project is to develop mutliple linear regression model to analyze the factors that will make a movie popular. The dataset contains the information that are extracted from IMDB for random sample movies. For popularity we are going to measure the audience_score as an output variable and the attributes will be the type of movie, genre, runtime, imdb rating, imdb number of votes, critics rating, critics score, audience rating, Oscar awards obtained (actor, actress, director and picture).
+#if all these attributes are related significantly then we can find the popularity of movie.
+
+#Load packages
+```{r}
+library(ggplot2)
+library(dplyr)
+library(statsr)
+library(gridExtra)
+library(corrplot)
+```
+
+#Load the data
+```{r}
+mydata <- load("C://Users//Shwetha Krishna//Downloads//movies.RData")
+```
+
+```{r}
+movies_new <- movies %>% select(title, title_type, genre, runtime, imdb_rating, imdb_num_votes, critics_rating, critics_score, audience_rating, audience_score, best_pic_win, best_actor_win, best_actress_win, best_dir_win)
+
+str(movies_new)
+```
+
+```{r}
+summary(movies_new)
+View(movies_new)
+```
+#Drop missing value
+```{r}
+movies_new <- na.omit(movies_new)
+```
+
+Split data into train and test
+```{r}
+set.seed(2017)
+split <- sample(seq_len(nrow(movies_new)), size = floor(0.999 * nrow(movies_new)))
+train <- movies_new[split, ]
+test <- movies_new[-split, ]
+```
+
+#histogram
+```{r}
+colors = c("red", "yellow", "green", "violet", "orange", "blue", "pink", "cyan")
+hist(train$audience_score, col=colors, main = "Histogram for Train score")
+summary(train$audience_score)
+```
+#The median of our response variable - audience score distribution is 65; 75% of the movie in the training set have an audience score higher than 80; 25% of the movie in the training set have an audience score lower than 46; very few movie have an audience score lower than 20 or higher than 90
+
+
+```{r}
+p1 <- ggplot(aes(x=runtime), data=train) + 
+  geom_histogram(aes(y=100*(..count..)/sum(..count..)), color='black', fill='white', binwidth = 5) + ylab('percentage') + ggtitle('Run Time')
+p2 <- ggplot(aes(x=imdb_rating), data=train) +
+  geom_histogram(aes(y=100*(..count..)/sum(..count..)), color='black', fill='white', binwidth = 0.2) + ylab('percentage') + ggtitle('IMDB rating')
+p3 <- ggplot(aes(x=log10(imdb_num_votes)), data=train) +
+  geom_histogram(aes(y=100*(..count..)/sum(..count..)), color='black', fill='white') + ylab('percentage') + ggtitle('log(IMDB number of votes)')
+p4 <- ggplot(aes(x=critics_score), data=train) +
+  geom_histogram(aes(y=100*(..count..)/sum(..count..)), color='black', fill='white', binwidth = 2) + ylab('percentage') + ggtitle('Critics Score')
+grid.arrange(p1, p2, p3, p4, ncol=2)
+```
+#Regression analysis: Run time, IMDB rating, log(IMDB number of votes) and Critics Scores all have reasonable broad distribution, therefore, they will be considered for the regression analysis.
+```{r}
+p1 <- ggplot(aes(x=title_type), data=train) + geom_bar(aes(y=100*(..count..)/sum(..count..))) + ylab('percentage') +
+  ggtitle('Title Type') + coord_flip()
+p2 <- ggplot(aes(x=genre), data=train) + geom_bar(aes(y=100*(..count..)/sum(..count..))) + ylab('percentage') +
+  ggtitle('Genre') + coord_flip()
+p3 <- ggplot(aes(x=critics_rating), data=train) + geom_bar(aes(y=100*(..count..)/sum(..count..))) + ylab('percentage') +
+  ggtitle('Critics Rating') + coord_flip()
+p4 <- ggplot(aes(x=audience_rating), data=train) + geom_bar(aes(y=100*(..count..)/sum(..count..))) + ylab('percentage') +
+  ggtitle('Audience Rating') + coord_flip()
+grid.arrange(p1, p2, p3, p4, ncol=2)
+```
+#Most movies in the data are in the "Feature Film" title type and majority of the movies are drama. Therefore, we must be aware that the results could be biased toward drama movies.
+```{r}
+vars <- names(train) %in% c('runtime', 'imdb_rating', 'imdb_num_votes', 'critics_score')
+selected_train <- train[vars]
+corr.matrix <- cor(selected_train)
+corrplot(corr.matrix, main="\n\nCorrelation Plot of numerical variables", method="number")
+```
+```{r}
+boxplot(audience_score~critics_rating, data=train, main='Audience score vs. Critics rating', xlab='Critics Rating', ylab='Audience Score')
+by(train$audience_score, train$critics_rating, summary)
+boxplot(audience_score~audience_rating, data=train, main='Audience Score vs. Audience Rating', xlab='Audience rating', ylab='Audience Score')
+by(train$audience_score, train$audience_rating, summary)
+boxplot(audience_score~title_type, data=train, main='Audience score vs. Title type', xlab='Title_type', ylab='Audience Score')
+by(train$audience_score, train$title_type, summary)
+boxplot(audience_score~genre, data=train, main='Audience score vs. Genre', xlab='Genre', ylab='Audience score')
+by(train$audience_score, train$genre, summary)
+```
+#All the categorical variables seems to have reasonable significant correlation with audience score.
+
+```{r}
+x <- c(movies_new$imdb_num_votes,movies_new$best_pic_win,movies_new$best_actor_win,movies_new$best_actress_win,movies_new$best_dir_win)
+t.test(movies_new$audience_score, x)
+```
+
+```{r}
+movies_new[c(2,3,7,9,11:14)] <- lapply(movies_new[c(2,3,7,9,11:14)], as.numeric)
+#View(movies_new)
+movies_pca <- prcomp(movies_new[,c(2,3,7,9,11:14)],scale=TRUE)
+summary(movies_pca)
+#movies_pca$x
+movies_pca$rotation
+print(movies_pca)
+```
+```{r}
+plot(movies_pca, type='l')
+```
+```{r}
+(movies_pca_eigens <- movies_pca$sdev^2)
+names(movies_pca_eigens) <- paste("PC",1:8,sep="")
+sumlambdas <- sum(movies_pca_eigens)
+sumlambdas
+dim(movies_new)
+dim(corr.matrix)
+```
+
+
