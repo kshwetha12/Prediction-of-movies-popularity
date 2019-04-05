@@ -4,6 +4,7 @@ author: "Shwetha Krishna"
 date: "February 22, 2019"
 output:
   html_document: default
+  word_document: default
   pdf_document: default
 ---
 
@@ -27,7 +28,13 @@ mydata <- load("C://Users//Shwetha Krishna//Downloads//movies.RData")
 ```{r}
 movies_new <- movies %>% select(title, title_type, genre, runtime, imdb_rating, imdb_num_votes, critics_rating, critics_score, audience_rating, audience_score, best_pic_win, best_actor_win, best_actress_win, best_dir_win)
 
+
 str(movies_new)
+movies_new[c(2,3,7,9,11:14)] <- lapply(movies_new[c(2,3,7,9,11:14)], as.numeric)
+
+movies_data <- movies_new
+
+movies_data <- movies_data %>% select(title_type, genre, runtime, imdb_rating, imdb_num_votes, critics_rating, critics_score, audience_rating,best_pic_win, best_actor_win, best_actress_win, best_dir_win)
 ```
 
 ```{r}
@@ -86,6 +93,7 @@ selected_train <- train[vars]
 corr.matrix <- cor(selected_train)
 corrplot(corr.matrix, main="\n\nCorrelation Plot of numerical variables", method="number")
 ```
+
 ```{r}
 boxplot(audience_score~critics_rating, data=train, main='Audience score vs. Critics rating', xlab='Critics Rating', ylab='Audience Score')
 by(train$audience_score, train$critics_rating, summary)
@@ -97,21 +105,21 @@ boxplot(audience_score~genre, data=train, main='Audience score vs. Genre', xlab=
 by(train$audience_score, train$genre, summary)
 ```
 #All the categorical variables seems to have reasonable significant correlation with audience score.
-
 ```{r}
 x <- c(movies_new$imdb_num_votes,movies_new$best_pic_win,movies_new$best_actor_win,movies_new$best_actress_win,movies_new$best_dir_win)
 t.test(movies_new$audience_score, x)
 ```
 
 ```{r}
-movies_new[c(2,3,7,9,11:14)] <- lapply(movies_new[c(2,3,7,9,11:14)], as.numeric)
-#View(movies_new)
-movies_pca <- prcomp(movies_new[,c(2,3,7,9,11:14)],scale=TRUE)
+movies_new <- cor(movies_new[2:14])
+movies_pca <- prcomp(movies_new,scale=TRUE)
+str(movies_new)
 summary(movies_pca)
 #movies_pca$x
 movies_pca$rotation
 print(movies_pca)
 ```
+
 ```{r}
 plot(movies_pca, type='l')
 ```
@@ -121,7 +129,156 @@ names(movies_pca_eigens) <- paste("PC",1:8,sep="")
 sumlambdas <- sum(movies_pca_eigens)
 sumlambdas
 dim(movies_new)
-dim(corr.matrix)
 ```
 
+```{r}
+#corr.matrix
+movies_pca_new <- prcomp(corr.matrix, scale = TRUE)
+summary(movies_pca_new)
+movies_pca_new$rotation
+print(movies_pca_new)
+```
+```{r}
+plot(movies_pca_new, type='l')
+(movies_pca_eigens_new <- movies_pca_new$sdev^2)
+names(movies_pca_eigens_new) <- paste("PC",1:2,sep="")
+sumlambdas <- sum(movies_pca_eigens_new)
+sumlambdas
+dim(corr.matrix)
+```
+```{r}
+
+```
+
+```{r}
+colnames(movies_new) <- rownames(movies_new)
+movies_new <- as.dist(movies_new)
+mat5.nn <- hclust(movies_new, method = "single")
+plot(mat5.nn, hang=-1,xlab="Object",ylab="Distance",
+main="Dendrogram. Nearest neighbor linkage")
+
+#Default - Complete
+mat5.fn <- hclust(movies_new)
+plot(mat5.fn,hang=-1,xlab="Object",ylab="Distance",
+main="Dendrogram. Farthest neighbor linkage")
+
+#Average
+mat5.avl <- hclust(movies_new,method="average")
+plot(mat5.avl,hang=-1,xlab="Object",ylab="Distance",
+main="Dendrogram. Group average linkage")
+
+```
+
+```{r}
+
+# Standardizing the data with scale()
+matstd.movies_new <- scale(movies_new[2:14])
+# K-means, k=2, 3, 4, 5, 6
+# Centers (k's) are numbers thus, 10 random sets are chosen
+
+(kmeans2.movies_new <- kmeans(matstd.movies_new,2,nstart = 10))
+# Computing the percentage of variation accounted for. Two clusters
+perc.var.2 <- round(100*(1 - kmeans2.movies_new$betweenss/kmeans2.movies_new$totss),1)
+names(perc.var.2) <- "Perc. 2 clus"
+perc.var.2
+
+# Computing the percentage of variation accounted for. Three clusters
+(kmeans3.movies_new <- kmeans(matstd.movies_new,3,nstart = 10))
+perc.var.3 <- round(100*(1 - kmeans3.movies_new$betweenss/kmeans3.movies_new$totss),1)
+names(perc.var.3) <- "Perc. 3 clus"
+perc.var.3
+
+# Computing the percentage of variation accounted for. Four clusters
+(kmeans4.movies_new <- kmeans(matstd.movies_new,4,nstart = 10))
+perc.var.4 <- round(100*(1 - kmeans4.movies_new$betweenss/kmeans4.movies_new$totss),1)
+names(perc.var.4) <- "Perc. 4 clus"
+perc.var.4
+
+# Computing the percentage of variation accounted for. Five clusters
+(kmeans5.movies_new <- kmeans(matstd.movies_new,5,nstart = 10))
+perc.var.5 <- round(100*(1 - kmeans5.movies_new$betweenss/kmeans5.movies_new$totss),1)
+names(perc.var.5) <- "Perc. 5 clus"
+perc.var.5
+
+(kmeans6.movies_new <- kmeans(matstd.movies_new,6,nstart = 10))
+# Computing the percentage of variation accounted for. Six clusters
+perc.var.6 <- round(100*(1 - kmeans6.movies_new$betweenss/kmeans6.movies_new$totss),1)
+names(perc.var.6) <- "Perc. 6 clus"
+perc.var.6
+#
+
+movies_new <- scale(movies_new)
+wss <- (nrow(movies_new)-1)*sum(apply(movies_new,2,var))
+for (i in 1:5) wss[i] <- sum(kmeans(movies_new,centers=i)$withinss)
+fit <- kmeans(movies_new, 5)
+aggregate(movies_new,by=list(fit$cluster),FUN=mean)
+mydata <- data.frame(movies_new, fit$cluster)
+mydata
+
+d <- dist(mydata, method = "euclidean") # distance matrix
+fit <- hclust(d, method="complete")
+
+plot(fit)
+# cut tree into 5 clusters
+groups <- cutree(fit, k=5)
+# draw dendogram with red borders around the 5 clusters
+rect.hclust(fit, k=5, border="red")
+
+
+```
+Factor Analysis
+```{r}
+head(movies_data)
+
+#Loading the required library
+library(psych)
+
+#Applying Factor Analysis on the data with 4 factors
+fit_pc <- principal(movies_data,nfactors = 4, rotate = "varimax")
+
+#Printing the results of Factor Analysis
+fit_pc
+
+#rounding the values to 3 decimal places
+round(fit.pc$values, 3)
+
+#Printing the loading data to console for the 
+fit.pc$loadings
+```
+Now we look at the cummunality
+```{r}
+fit.pc$communality
+
+#Printing the scores
+fit.pc$scores
+
+# See Correlations within Factors
+fa.plot(fit.pc) 
+
+#Visualize the relationship
+fa.diagram(fit.pc)
+
+```
+
+
+
+
+
+```
+
+```{r}
+fit1 <- lm(audience_score~., data = train[,-1])
+g1 <- step(fit1)
+
+library(car)
+compareCoefs(fit1,g1,se=FALSE)
+fit_final <- lm(audience_score ~ genre+runtime+imdb_rating+critics_score+audience_rating, data=train[,-1])
+summary(fit_final)
+newmovie <- test %>% select(genre, imdb_rating, audience_rating,critics_score,runtime)
+predict(fit_final, newmovie)
+predict(fit_final, newmovie, interval = "prediction", level = 0.95)
+test$audience_score
+```
+
+```
 
