@@ -3,15 +3,17 @@ title: "Prediction of movies popularity"
 author: "Shwetha Krishna"
 date: "February 22, 2019"
 output:
-  html_document: default
   word_document: default
   pdf_document: default
+  html_document: default
 ---
 
 #The purpose of this project is to develop mutliple linear regression model to analyze the factors that will make a movie popular. The dataset contains the information that are extracted from IMDB for random sample movies. For popularity we are going to measure the audience_score as an output variable and the attributes will be the type of movie, genre, runtime, imdb rating, imdb number of votes, critics rating, critics score, audience rating, Oscar awards obtained (actor, actress, director and picture).
 #if all these attributes are related significantly then we can find the popularity of movie.
 
-#Load packages
+#Load packages0
+
+
 ```{r}
 library(ggplot2)
 library(dplyr)
@@ -146,9 +148,6 @@ sumlambdas <- sum(movies_pca_eigens_new)
 sumlambdas
 dim(corr.matrix)
 ```
-```{r}
-
-```
 
 ```{r}
 colnames(movies_new) <- rownames(movies_new)
@@ -240,29 +239,23 @@ fit_pc <- principal(movies_data,nfactors = 4, rotate = "varimax")
 fit_pc
 
 #rounding the values to 3 decimal places
-round(fit.pc$values, 3)
+round(fit_pc$values, 3)
 
 #Printing the loading data to console for the 
-fit.pc$loadings
+fit_pc$loadings
 ```
 Now we look at the cummunality
 ```{r}
-fit.pc$communality
+fit_pc$communality
 
 #Printing the scores
-fit.pc$scores
+fit_pc$scores
 
 # See Correlations within Factors
-fa.plot(fit.pc) 
+fa.plot(fit_pc) 
 
 #Visualize the relationship
-fa.diagram(fit.pc)
-
-```
-
-
-
-
+fa.diagram(fit_pc)
 
 ```
 
